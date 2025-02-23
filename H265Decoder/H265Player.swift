@@ -8,40 +8,40 @@
 import Foundation
 import AVFoundation
 import CoreMedia
+import MetalKit
 
 class H265Player: NSObject, VideoDecoderDelegate {
     
-    let displayLayer = AVSampleBufferDisplayLayer()
+    // Instead of a display layer, use the Metal renderer.
+    var renderer: NV12Renderer?
+    var mtkView: MTKView?
     private var decoder: H265Decoder?
     
     override init() {
         super.init()
         
-        // Initial configuration for the display layer
-        displayLayer.videoGravity = .resizeAspect
-        
-        // Initialize the decoder (delegate = self)
+        // Initialize the H.265 decoder with self as delegate.
         decoder = H265Decoder(delegate: self)
         
-        // For simple playback, set isBaseline to true
+        // For simple (baseline) playback.
         decoder?.isBaseline = true
     }
     
     func startPlayback() {
-        // Load the file "cars_320x240.h265"
+        // Load the file "temp2.h265"
         guard let url = Bundle.main.url(forResource: "temp2", withExtension: "h265") else {
             print("File not found")
             return
         }
         do {
             let data = try Data(contentsOf: url)
-            // Set FPS and video size as needed
+            // Set FPS and video size as needed.
             let packet = VideoPacket(data: data,
                                      type: .h265,
                                      fps: 30,
                                      videoSize: CGSize(width: 1080, height: 1920))
             
-            // Decode as a single packet
+            // Decode the entire packet.
             decoder?.decodeOnePacket(packet)
             
         } catch {
@@ -51,8 +51,11 @@ class H265Player: NSObject, VideoDecoderDelegate {
     
     // MARK: - VideoDecoderDelegate
     func decodeOutput(video: CMSampleBuffer) {
-        // When decoding is complete, send the output to AVSampleBufferDisplayLayer
-        displayLayer.enqueue(video)
+        // Extract the CVPixelBuffer from the sample buffer.
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(video) else { return }
+        
+        // Pass the pixel buffer to the Metal renderer.
+        renderer?.currentPixelBuffer = pixelBuffer
     }
     
     func decodeOutput(error: DecodeError) {

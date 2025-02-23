@@ -12,8 +12,8 @@ struct ContentView: View {
         VStack {
             Text("H.265 Player (temp.h265)")
                 .font(.headline)
-            VideoPlayerView()
-                .frame(width: 360, height: 640) // Adjust or make it responsive for iOS
+            MetalVideoPlayerView()
+            .frame(width: 360, height: 640) // Adjust or make it responsive for iOS
         }
         .padding()
     }
